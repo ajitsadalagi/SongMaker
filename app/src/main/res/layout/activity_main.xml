@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:scrollbars="vertical"
+    android:fadeScrollbars="false"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Generate Lyrics with LLM -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/generate_lyrics"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+        <EditText
+            android:id="@+id/etLyricPrompt"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:minLines="2"
+            android:hint="@string/lyric_prompt_hint"
+            android:padding="8dp"
+            android:background="@android:drawable/edit_text"
+            android:inputType="textCapSentences|textMultiLine"
+            android:scrollbars="vertical"
+            android:fadeScrollbars="false"
+            android:layout_marginBottom="8dp" />
+        <Button
+            android:id="@+id/btnGenerateLyrics"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/generate_lyrics_btn"
+            android:background="@android:color/transparent"
+            app:backgroundTint="@android:color/transparent"
+            android:layout_marginBottom="8dp" />
+        <ProgressBar
+            android:id="@+id/progressLyrics"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:visibility="gone"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="8dp" />
+        <TextView
+            android:id="@+id/tvLyricStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:visibility="gone"
+            android:padding="4dp"
+            android:layout_marginBottom="4dp" />
+        <TextView
+            android:id="@+id/tvLyricSource"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:visibility="gone"
+            android:padding="4dp"
+            android:textStyle="italic"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Text Input Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/text_input"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etTextInput"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:hint="@string/enter_text"
+            android:gravity="top|start"
+            android:padding="8dp"
+            android:background="@android:drawable/edit_text"
+            android:inputType="textMultiLine"
+            android:scrollbars="vertical"
+            android:fadeScrollbars="false"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Voice Selection -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/select_voice"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/spinnerVoice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:padding="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <!-- Pitch and Speed Controls -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/pitch"
+                    android:textSize="12sp" />
+
+                <SeekBar
+                    android:id="@+id/sbPitch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="200"
+                    android:progress="100" />
+
+                <TextView
+                    android:id="@+id/tvPitchValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1.0"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/speed"
+                    android:textSize="12sp" />
+
+                <SeekBar
+                    android:id="@+id/sbSpeed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="200"
+                    android:progress="100" />
+
+                <TextView
+                    android:id="@+id/tvSpeedValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1.0"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnConvertToSong"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/convert_to_song"
+            android:background="@android:color/transparent"
+            app:backgroundTint="@android:color/transparent"
+            android:layout_marginBottom="16dp" />
+
+        <!-- MusicAPI: full song from lyrics -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/musicapi_section"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        <Button
+            android:id="@+id/btnCreateSongMusicApi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/musicapi_create_btn"
+            android:background="@android:color/transparent"
+            app:backgroundTint="@android:color/transparent"
+            android:layout_marginBottom="8dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+            <Button
+                android:id="@+id/btnPlayMusicApi"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/musicapi_play"
+                android:background="@android:color/transparent"
+                app:backgroundTint="@android:color/transparent"
+                android:layout_marginEnd="4dp" />
+            <Button
+                android:id="@+id/btnStopMusicApi"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/musicapi_stop"
+                android:background="@android:color/transparent"
+                app:backgroundTint="@android:color/transparent"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+        <ProgressBar
+            android:id="@+id/progressMusicApi"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:visibility="gone"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Voice Input Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/voice_input"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnVoiceInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/start_voice_input"
+            android:background="@android:color/transparent"
+            app:backgroundTint="@android:color/transparent"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/transcription"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:scrollbars="vertical"
+            android:fadeScrollbars="false"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/tvVoiceTranscription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="100dp"
+                android:padding="8dp"
+                android:background="@android:drawable/edit_text"
+                android:text="@string/not_recording"
+                android:textSize="14sp" />
+        </ScrollView>
+
+    </LinearLayout>
+</ScrollView>
