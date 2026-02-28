@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#6200EE</color>
+    <!-- Professional UI palette -->
+    <color name="primary">#6200EE</color>
+    <color name="primary_dark">#3700B3</color>
+    <color name="primary_light">#BB86FC</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F5F5F5</color>
+    <color name="outline">#E0E0E0</color>
+    <color name="outline_focus">#6200EE</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="button_text">#FFFFFF</color>
+    <color name="button_secondary_bg">#F5F5F5</color>
+    <color name="button_secondary_text">#424242</color>
 </resources>

@@ -47,5 +47,15 @@
     <string name="musicapi_voice_kid">Kid</string>
     <string name="musicapi_play">Play</string>
     <string name="musicapi_stop">Stop</string>
+    <string name="musicapi_pause">Pause</string>
+    <string name="musicapi_download">Download song</string>
+    <string name="musicapi_my_downloads">My downloads</string>
+    <string name="musicapi_downloading">Downloading…</string>
+    <string name="musicapi_downloaded">Song saved</string>
+    <string name="musicapi_download_failed">Download failed</string>
+    <string name="musicapi_no_downloads">No downloaded songs. Create and download a song first.</string>
+    <string name="musicapi_save_song_title">Save song as</string>
+    <string name="musicapi_save_song_hint">Song name (leave blank for default)</string>
+    <string name="musicapi_use_default_name">Use default name</string>
     <string name="settings">Settings</string>
 </resources>

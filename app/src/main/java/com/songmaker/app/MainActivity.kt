@@ -2,7 +2,12 @@ package com.songmaker.app
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import androidx.appcompat.app.AlertDialog
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -14,12 +19,14 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.ProgressBar
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -53,12 +60,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvPitchValue: TextView
     private lateinit var tvSpeedValue: TextView
     private lateinit var btnCreateSongMusicApi: Button
-    private lateinit var btnPlayMusicApi: Button
-    private lateinit var btnStopMusicApi: Button
+    private lateinit var btnPlayMusicApi: ImageButton
+    private lateinit var btnStopMusicApi: ImageButton
+    private lateinit var btnDownloadMusicApi: ImageButton
+    private lateinit var btnMyDownloadsMusicApi: Button
     private lateinit var progressMusicApi: ProgressBar
 
     private var musicApiMediaPlayer: android.media.MediaPlayer? = null
     private var lastMusicApiAudioUrl: String? = null
+
+    private val downloadedSongsDir by lazy { File(filesDir, "downloaded_songs").apply { mkdirs() } }
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var isVoiceInputActive = false
@@ -150,7 +161,21 @@ class MainActivity : AppCompatActivity() {
         btnCreateSongMusicApi = findViewById(R.id.btnCreateSongMusicApi)
         btnPlayMusicApi = findViewById(R.id.btnPlayMusicApi)
         btnStopMusicApi = findViewById(R.id.btnStopMusicApi)
+        btnDownloadMusicApi = findViewById(R.id.btnDownloadMusicApi)
+        btnMyDownloadsMusicApi = findViewById(R.id.btnMyDownloadsMusicApi)
         progressMusicApi = findViewById(R.id.progressMusicApi)
+        setupEditTextScrolling(etLyricPrompt)
+        setupEditTextScrolling(etTextInput)
+    }
+
+    /** Stops the parent ScrollView from stealing vertical drags so the EditText scrolls its content. */
+    private fun setupEditTextScrolling(editText: EditText) {
+        editText.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN || event.action == MotionEvent.ACTION_MOVE) {
+                editText.parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            false
+        }
     }
 
     private fun tryLoadLlmModel() {
@@ -232,6 +257,17 @@ class MainActivity : AppCompatActivity() {
                 ?: Toast.makeText(this, "Create a song first", Toast.LENGTH_SHORT).show()
         }
         btnStopMusicApi.setOnClickListener { stopMusicApiPlayback() }
+        btnDownloadMusicApi.setOnClickListener { downloadMusicApiSong() }
+        btnMyDownloadsMusicApi.setOnClickListener { showMyDownloadsAndPlay() }
+    }
+
+    /** Plays a short "done" alert tone (e.g. when lyrics or MusicAPI song is ready). */
+    private fun playDoneTone() {
+        try {
+            val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80)
+            toneGen.startTone(ToneGenerator.TONE_PROP_ACK, 200)
+            Handler(Looper.getMainLooper()).postDelayed({ toneGen.release() }, 250)
+        } catch (_: Exception) { /* ignore if tone fails */ }
     }
 
     private fun stopMusicApiPlayback() {
@@ -336,7 +372,7 @@ class MainActivity : AppCompatActivity() {
                 ).firstOrNull() ?: throw Exception("No task_id in response. Response: ${createJson.take(400)}")
                 var audioUrl: String? = null
                 var attempts = 0
-                val maxAttempts = 60
+                val maxAttempts = 200
                 while (attempts < maxAttempts) {
                     Thread.sleep(3000)
                     attempts++
@@ -367,6 +403,7 @@ class MainActivity : AppCompatActivity() {
                     progressMusicApi.visibility = ProgressBar.GONE
                     btnCreateSongMusicApi.isEnabled = true
                     playMusicApiAudio(urlToPlay)
+                    playDoneTone()
                 }
             } catch (e: Exception) {
                 android.util.Log.e("SongMaker", "MusicAPI error", e)
@@ -385,6 +422,126 @@ class MainActivity : AppCompatActivity() {
         try {
             musicApiMediaPlayer = android.media.MediaPlayer().apply {
                 setDataSource(url)
+                prepareAsync()
+                setOnPreparedListener { start() }
+                setOnCompletionListener {
+                    musicApiMediaPlayer?.release()
+                    musicApiMediaPlayer = null
+                }
+                setOnErrorListener { _, _, _ ->
+                    musicApiMediaPlayer = null
+                    true.also { release() }
+                }
+            }
+            Toast.makeText(this, getString(R.string.playing), Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            musicApiMediaPlayer = null
+            Toast.makeText(this, "Playback failed: " + e.message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun downloadMusicApiSong() {
+        val url = lastMusicApiAudioUrl
+        if (url.isNullOrEmpty()) {
+            Toast.makeText(this, "Create a song first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val editText = EditText(this).apply {
+            hint = getString(R.string.musicapi_save_song_hint)
+            setPadding(
+                (48 * resources.displayMetrics.density).toInt(),
+                (24 * resources.displayMetrics.density).toInt(),
+                (48 * resources.displayMetrics.density).toInt(),
+                (24 * resources.displayMetrics.density).toInt()
+            )
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.musicapi_save_song_title))
+            .setView(editText)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val name = editText.text.toString().trim()
+                val baseName = if (name.isEmpty()) null else sanitizeFileName(name)
+                performDownloadWithFileName(url, baseName)
+            }
+            .setNeutralButton(getString(R.string.musicapi_use_default_name)) { _, _ ->
+                performDownloadWithFileName(url, null)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun sanitizeFileName(name: String): String {
+        return name.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim().ifEmpty { "song" }
+    }
+
+    private fun performDownloadWithFileName(url: String, fileNameBase: String?) {
+        btnDownloadMusicApi.isEnabled = false
+        Toast.makeText(this, getString(R.string.musicapi_downloading), Toast.LENGTH_SHORT).show()
+        executor.execute {
+            var errorMsg: String? = null
+            try {
+                val request = Request.Builder().url(url).get().build()
+                val response = musicApiClient.newCall(request).execute()
+                if (!response.isSuccessful) {
+                    errorMsg = "HTTP ${response.code}"
+                } else {
+                    val body = response.body ?: run { errorMsg = "Empty response"; null }
+                    if (body != null) {
+                        val ext = when {
+                            url.contains(".mp3", ignoreCase = true) -> "mp3"
+                            url.contains(".m4a", ignoreCase = true) -> "m4a"
+                            else -> "mp3"
+                        }
+                        val base = fileNameBase ?: "song_${System.currentTimeMillis()}"
+                        val file = File(downloadedSongsDir, "$base.$ext")
+                        body.byteStream().use { input ->
+                            FileOutputStream(file).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        runOnUiThread {
+                            btnDownloadMusicApi.isEnabled = true
+                            Toast.makeText(this, getString(R.string.musicapi_downloaded), Toast.LENGTH_SHORT).show()
+                        }
+                        return@execute
+                    }
+                }
+            } catch (e: Exception) {
+                errorMsg = e.message ?: "Unknown error"
+                android.util.Log.e("SongMaker", "Download failed", e)
+            }
+            runOnUiThread {
+                btnDownloadMusicApi.isEnabled = true
+                Toast.makeText(this, getString(R.string.musicapi_download_failed) + ": " + (errorMsg ?: ""), Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun showMyDownloadsAndPlay() {
+        val files = downloadedSongsDir.listFiles()?.filter { it.isFile && it.length() > 0 }
+            ?.sortedByDescending { it.lastModified() } ?: emptyList()
+        if (files.isEmpty()) {
+            Toast.makeText(this, getString(R.string.musicapi_no_downloads), Toast.LENGTH_LONG).show()
+            return
+        }
+        val labels = files.map { f ->
+            val date = java.text.SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(java.util.Date(f.lastModified()))
+            "${f.nameWithoutExtension} ($date)"
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.musicapi_my_downloads))
+            .setItems(labels.toTypedArray()) { _, which ->
+                playLocalFile(files[which])
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun playLocalFile(file: File) {
+        stopMusicApiPlayback()
+        try {
+            musicApiMediaPlayer = android.media.MediaPlayer().apply {
+                setDataSource(file.absolutePath)
                 prepareAsync()
                 setOnPreparedListener { start() }
                 setOnCompletionListener {
@@ -448,6 +605,7 @@ class MainActivity : AppCompatActivity() {
                     tvLyricSource.text = if (isFromExistingLyrics) getString(R.string.lyrics_source_existing) else getString(R.string.lyrics_source_new)
                     tvLyricSource.visibility = TextView.VISIBLE
                     etTextInput.setText(lyrics)
+                    playDoneTone()
                 }
             } catch (e: Exception) {
                 android.util.Log.e("SongMaker", "Lyric generation failed", e)

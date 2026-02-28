@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:scrollbars="vertical"
     android:fadeScrollbars="false"
+    android:fillViewport="true"
     tools:context=".MainActivity">
 
     <LinearLayout
@@ -33,23 +34,24 @@
             android:layout_marginBottom="4dp" />
         <EditText
             android:id="@+id/etLyricPrompt"
+            style="@style/Widget.SongMaker.EditText"
             android:layout_width="match_parent"
-            android:layout_height="120dp"
-            android:minLines="2"
+            android:layout_height="160dp"
+            android:minLines="3"
             android:hint="@string/lyric_prompt_hint"
-            android:padding="8dp"
-            android:background="@android:drawable/edit_text"
             android:inputType="textCapSentences|textMultiLine"
             android:scrollbars="vertical"
             android:fadeScrollbars="false"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbarSize="8dp"
+            android:overScrollMode="always"
             android:layout_marginBottom="8dp" />
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnGenerateLyrics"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/generate_lyrics_btn"
-            android:background="@android:color/transparent"
-            app:backgroundTint="@android:color/transparent"
             android:layout_marginBottom="8dp" />
         <ProgressBar
             android:id="@+id/progressLyrics"
@@ -88,15 +90,17 @@
 
         <EditText
             android:id="@+id/etTextInput"
+            style="@style/Widget.SongMaker.EditText"
             android:layout_width="match_parent"
-            android:layout_height="120dp"
+            android:layout_height="160dp"
             android:hint="@string/enter_text"
             android:gravity="top|start"
-            android:padding="8dp"
-            android:background="@android:drawable/edit_text"
             android:inputType="textMultiLine"
             android:scrollbars="vertical"
             android:fadeScrollbars="false"
+            android:scrollbarStyle="outsideOverlay"
+            android:scrollbarSize="8dp"
+            android:overScrollMode="always"
             android:layout_marginBottom="8dp" />
 
         <!-- Voice Selection -->
@@ -180,13 +184,12 @@
             </LinearLayout>
         </LinearLayout>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnConvertToSong"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/convert_to_song"
-            android:background="@android:color/transparent"
-            app:backgroundTint="@android:color/transparent"
             android:layout_marginBottom="16dp" />
 
         <!-- MusicAPI: full song from lyrics -->
@@ -197,37 +200,60 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCreateSongMusicApi"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/musicapi_create_btn"
-            android:background="@android:color/transparent"
-            app:backgroundTint="@android:color/transparent"
             android:layout_marginBottom="8dp" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:gravity="center"
             android:layout_marginBottom="8dp">
-            <Button
+            <ImageButton
                 android:id="@+id/btnPlayMusicApi"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/musicapi_play"
-                android:background="@android:color/transparent"
-                app:backgroundTint="@android:color/transparent"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_icon_button"
+                android:src="@drawable/ic_play_secondary"
+                android:contentDescription="@string/musicapi_play"
+                android:scaleType="centerInside"
+                android:padding="12dp"
                 android:layout_marginEnd="4dp" />
-            <Button
+            <ImageButton
                 android:id="@+id/btnStopMusicApi"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/musicapi_stop"
-                android:background="@android:color/transparent"
-                app:backgroundTint="@android:color/transparent"
-                android:layout_marginStart="4dp" />
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_icon_button"
+                android:src="@drawable/ic_pause_secondary"
+                android:contentDescription="@string/musicapi_pause"
+                android:scaleType="centerInside"
+                android:padding="12dp"
+                android:layout_marginHorizontal="4dp" />
+            <ImageButton
+                android:id="@+id/btnDownloadMusicApi"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_icon_button"
+                android:src="@drawable/ic_download_secondary"
+                android:contentDescription="@string/musicapi_download"
+                android:scaleType="centerInside"
+                android:padding="12dp"
+                android:layout_marginHorizontal="4dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMyDownloadsMusicApi"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:paddingHorizontal="12dp"
+                android:text="@string/musicapi_my_downloads"
+                android:textSize="13sp"
+                android:layout_marginStart="8dp" />
         </LinearLayout>
         <ProgressBar
             android:id="@+id/progressMusicApi"
@@ -249,11 +275,10 @@
 
         <Button
             android:id="@+id/btnVoiceInput"
+            style="@style/Widget.SongMaker.Button.Primary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/start_voice_input"
-            android:background="@android:color/transparent"
-            app:backgroundTint="@android:color/transparent"
             android:layout_marginBottom="16dp" />
 
         <TextView
@@ -276,11 +301,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="100dp"
-                android:padding="8dp"
-                android:background="@android:drawable/edit_text"
+                android:padding="14dp"
+                android:background="@drawable/bg_edittext"
                 android:text="@string/not_recording"
-                android:textSize="14sp" />
+                android:textSize="14sp"
+                android:textColor="@color/text_primary" />
         </ScrollView>
 
     </LinearLayout>
-</ScrollView>
+</androidx.core.widget.NestedScrollView>

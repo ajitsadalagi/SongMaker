@@ -27,13 +27,12 @@
 
         <EditText
             android:id="@+id/etMusicApiKey"
+            style="@style/Widget.SongMaker.EditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:minHeight="48dp"
             android:hint="@string/musicapi_key_hint"
             android:inputType="textPassword"
-            android:padding="12dp"
-            android:background="@android:drawable/edit_text"
             android:layout_marginBottom="16dp" />
 
         <TextView
