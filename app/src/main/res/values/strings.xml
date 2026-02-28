@@ -24,6 +24,7 @@
     <string name="speed">Speed:</string>
     <string name="playing">Playing...</string>
     <string name="stopped">Stopped</string>
+    <string name="paused">Paused</string>
     <string name="generate_lyrics">Generate lyrics (on-device LLM)</string>
     <string name="lyric_prompt_hint">e.g. a song about summer love, freedom on the road</string>
     <string name="generate_lyrics_btn">Generate lyrics</string>
@@ -49,6 +50,7 @@
     <string name="musicapi_stop">Stop</string>
     <string name="musicapi_pause">Pause</string>
     <string name="musicapi_download">Download song</string>
+    <string name="musicapi_share">Share song</string>
     <string name="musicapi_my_downloads">My downloads</string>
     <string name="musicapi_downloading">Downloading…</string>
     <string name="musicapi_downloaded">Song saved</string>

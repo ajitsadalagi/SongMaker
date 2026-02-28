@@ -1,0 +1,8 @@
+# Copy to signing.properties and fill in. Do not commit signing.properties.
+# Use the correct keystore path (note: .keystore not .keystor).
+storeFile=/path/to/your-release-key.keystore
+storePassword=your_store_password
+# keyAlias must match an alias in the keystore. List them with:
+#   keytool -list -keystore /path/to/your.keystore
+keyAlias=your_key_alias
+keyPassword=your_key_password

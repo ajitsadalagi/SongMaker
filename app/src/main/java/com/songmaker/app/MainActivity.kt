@@ -1,7 +1,9 @@
 package com.songmaker.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import androidx.core.content.FileProvider
 import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Build
@@ -63,11 +65,24 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnPlayMusicApi: ImageButton
     private lateinit var btnStopMusicApi: ImageButton
     private lateinit var btnDownloadMusicApi: ImageButton
+    private lateinit var btnShareMusicApi: ImageButton
     private lateinit var btnMyDownloadsMusicApi: Button
     private lateinit var progressMusicApi: ProgressBar
+    private lateinit var seekBarMusicApi: SeekBar
+    private lateinit var tvMusicApiTimeCurrent: TextView
+    private lateinit var tvMusicApiTimeTotal: TextView
+    private lateinit var tvMusicApiSongTitle: TextView
 
     private var musicApiMediaPlayer: android.media.MediaPlayer? = null
     private var lastMusicApiAudioUrl: String? = null
+    /** Source currently loaded in the player: URL or "file:path". Used to resume after pause. */
+    private var currentMusicApiSource: String? = null
+    private var musicApiPausedPosition: Int = 0
+    private val musicApiProgressHandler = Handler(Looper.getMainLooper())
+    private var musicApiProgressRunnable: Runnable? = null
+    private var isMusicApiSeeking: Boolean = false
+    /** Last downloaded or selected audio file, used for sharing (e.g. WhatsApp). */
+    private var lastDownloadedFile: File? = null
 
     private val downloadedSongsDir by lazy { File(filesDir, "downloaded_songs").apply { mkdirs() } }
 
@@ -130,6 +145,11 @@ class MainActivity : AppCompatActivity() {
         tryLoadLlmModel()
     }
 
+    override fun onResume() {
+        super.onResume()
+        updateShareButtonState()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
@@ -162,8 +182,14 @@ class MainActivity : AppCompatActivity() {
         btnPlayMusicApi = findViewById(R.id.btnPlayMusicApi)
         btnStopMusicApi = findViewById(R.id.btnStopMusicApi)
         btnDownloadMusicApi = findViewById(R.id.btnDownloadMusicApi)
+        btnShareMusicApi = findViewById(R.id.btnShareMusicApi)
         btnMyDownloadsMusicApi = findViewById(R.id.btnMyDownloadsMusicApi)
         progressMusicApi = findViewById(R.id.progressMusicApi)
+        seekBarMusicApi = findViewById(R.id.seekBarMusicApi)
+        tvMusicApiTimeCurrent = findViewById(R.id.tvMusicApiTimeCurrent)
+        tvMusicApiTimeTotal = findViewById(R.id.tvMusicApiTimeTotal)
+        tvMusicApiSongTitle = findViewById(R.id.tvMusicApiSongTitle)
+        updateShareButtonState()
         setupEditTextScrolling(etLyricPrompt)
         setupEditTextScrolling(etTextInput)
     }
@@ -253,12 +279,83 @@ class MainActivity : AppCompatActivity() {
     private fun setupMusicApi() {
         btnCreateSongMusicApi.setOnClickListener { createSongWithMusicApi() }
         btnPlayMusicApi.setOnClickListener {
-            lastMusicApiAudioUrl?.let { url -> playMusicApiAudio(url) }
-                ?: Toast.makeText(this, "Create a song first", Toast.LENGTH_SHORT).show()
+            val player = musicApiMediaPlayer
+            if (player != null && !player.isPlaying && currentMusicApiSource != null) {
+                // Resume from paused position (works for both API URL and downloaded file)
+                player.seekTo(musicApiPausedPosition)
+                player.start()
+                startMusicApiProgressUpdates()
+                Toast.makeText(this, getString(R.string.playing), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val url = lastMusicApiAudioUrl
+            if (url != null) {
+                playMusicApiAudio(url)
+            } else {
+                Toast.makeText(this, "Create a song first", Toast.LENGTH_SHORT).show()
+            }
         }
-        btnStopMusicApi.setOnClickListener { stopMusicApiPlayback() }
+        btnStopMusicApi.setOnClickListener { pauseMusicApiPlayback() }
         btnDownloadMusicApi.setOnClickListener { downloadMusicApiSong() }
+        btnShareMusicApi.setOnClickListener { shareLastDownloadedSong() }
         btnMyDownloadsMusicApi.setOnClickListener { showMyDownloadsAndPlay() }
+        seekBarMusicApi.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser || !isMusicApiSeeking) return
+                musicApiMediaPlayer?.let { mp ->
+                    val duration = mp.duration
+                    if (duration > 0) {
+                        val pos = (progress.toLong() * duration / 1000).toInt()
+                        mp.seekTo(pos)
+                        tvMusicApiTimeCurrent.text = formatMs(pos)
+                    }
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) { isMusicApiSeeking = true }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) { isMusicApiSeeking = false }
+        })
+    }
+
+    private fun formatMs(ms: Int): String {
+        val sec = ms / 1000
+        val min = sec / 60
+        return "%d:%02d".format(min, sec % 60)
+    }
+
+    private fun startMusicApiProgressUpdates() {
+        stopMusicApiProgressUpdates()
+        musicApiProgressRunnable = object : Runnable {
+            override fun run() {
+                val mp = musicApiMediaPlayer ?: return
+                if (!mp.isPlaying) return
+                val pos = mp.currentPosition
+                val duration = mp.duration
+                if (duration > 0 && !isMusicApiSeeking) {
+                    seekBarMusicApi.progress = (pos * 1000 / duration).coerceIn(0, 1000)
+                }
+                tvMusicApiTimeCurrent.text = formatMs(pos)
+                if (duration > 0) tvMusicApiTimeTotal.text = formatMs(duration)
+                musicApiProgressHandler.postDelayed(this, 300)
+            }
+        }
+        musicApiProgressHandler.post(musicApiProgressRunnable!!)
+    }
+
+    private fun stopMusicApiProgressUpdates() {
+        musicApiProgressRunnable?.let { musicApiProgressHandler.removeCallbacks(it) }
+        musicApiProgressRunnable = null
+    }
+
+    private fun pauseMusicApiPlayback() {
+        val player = musicApiMediaPlayer ?: return
+        if (player.isPlaying) {
+            musicApiPausedPosition = player.currentPosition
+            player.pause()
+            stopMusicApiProgressUpdates()
+            seekBarMusicApi.progress = if (player.duration > 0) (musicApiPausedPosition * 1000 / player.duration).coerceIn(0, 1000) else 0
+            tvMusicApiTimeCurrent.text = formatMs(musicApiPausedPosition)
+            Toast.makeText(this, getString(R.string.paused), Toast.LENGTH_SHORT).show()
+        }
     }
 
     /** Plays a short "done" alert tone (e.g. when lyrics or MusicAPI song is ready). */
@@ -271,11 +368,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopMusicApiPlayback() {
+        stopMusicApiProgressUpdates()
         musicApiMediaPlayer?.apply {
             if (isPlaying) stop()
             release()
         }
         musicApiMediaPlayer = null
+        currentMusicApiSource = null
+        musicApiPausedPosition = 0
+        seekBarMusicApi.progress = 0
+        tvMusicApiTimeCurrent.text = "0:00"
+        tvMusicApiTimeTotal.text = "0:00"
+        tvMusicApiSongTitle.text = ""
+        tvMusicApiSongTitle.visibility = android.view.View.GONE
         Toast.makeText(this, getString(R.string.stopped), Toast.LENGTH_SHORT).show()
     }
 
@@ -402,7 +507,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     progressMusicApi.visibility = ProgressBar.GONE
                     btnCreateSongMusicApi.isEnabled = true
-                    playMusicApiAudio(urlToPlay)
+                    playMusicApiAudio(urlToPlay, title)
                     playDoneTone()
                 }
             } catch (e: Exception) {
@@ -416,26 +521,59 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun playMusicApiAudio(url: String) {
+    private fun playMusicApiAudio(url: String, title: String? = null) {
+        val player = musicApiMediaPlayer
+        if (player != null && currentMusicApiSource == url && !player.isPlaying) {
+            player.seekTo(musicApiPausedPosition)
+            player.start()
+            startMusicApiProgressUpdates()
+            Toast.makeText(this, getString(R.string.playing), Toast.LENGTH_SHORT).show()
+            return
+        }
         stopMusicApiPlayback()
         lastMusicApiAudioUrl = url
+        currentMusicApiSource = url
+        musicApiPausedPosition = 0
+        tvMusicApiSongTitle.text = title?.take(200)?.trim()?.ifEmpty { null } ?: "Song"
+        tvMusicApiSongTitle.visibility = android.view.View.VISIBLE
         try {
             musicApiMediaPlayer = android.media.MediaPlayer().apply {
                 setDataSource(url)
                 prepareAsync()
-                setOnPreparedListener { start() }
+                setOnPreparedListener {
+                    seekBarMusicApi.max = 1000
+                    if (duration > 0) {
+                        tvMusicApiTimeTotal.text = formatMs(duration)
+                    }
+                    start()
+                    startMusicApiProgressUpdates()
+                }
                 setOnCompletionListener {
+                    stopMusicApiProgressUpdates()
+                    currentMusicApiSource = null
+                    musicApiPausedPosition = 0
                     musicApiMediaPlayer?.release()
                     musicApiMediaPlayer = null
+                    seekBarMusicApi.progress = 0
+                    tvMusicApiTimeCurrent.text = "0:00"
+                    tvMusicApiSongTitle.text = ""
+                    tvMusicApiSongTitle.visibility = android.view.View.GONE
                 }
                 setOnErrorListener { _, _, _ ->
+                    stopMusicApiProgressUpdates()
+                    currentMusicApiSource = null
                     musicApiMediaPlayer = null
+                    tvMusicApiSongTitle.text = ""
+                    tvMusicApiSongTitle.visibility = android.view.View.GONE
                     true.also { release() }
                 }
             }
             Toast.makeText(this, getString(R.string.playing), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
+            currentMusicApiSource = null
             musicApiMediaPlayer = null
+            tvMusicApiSongTitle.text = ""
+            tvMusicApiSongTitle.visibility = android.view.View.GONE
             Toast.makeText(this, "Playback failed: " + e.message, Toast.LENGTH_SHORT).show()
         }
     }
@@ -500,7 +638,9 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
                         runOnUiThread {
+                            lastDownloadedFile = file
                             btnDownloadMusicApi.isEnabled = true
+                            btnShareMusicApi.isEnabled = true
                             Toast.makeText(this, getString(R.string.musicapi_downloaded), Toast.LENGTH_SHORT).show()
                         }
                         return@execute
@@ -514,6 +654,49 @@ class MainActivity : AppCompatActivity() {
                 btnDownloadMusicApi.isEnabled = true
                 Toast.makeText(this, getString(R.string.musicapi_download_failed) + ": " + (errorMsg ?: ""), Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    /** Enables share button and sets lastDownloadedFile when there are downloaded songs. */
+    private fun updateShareButtonState() {
+        if (!::btnShareMusicApi.isInitialized) return
+        val files = downloadedSongsDir.listFiles()?.filter { it.isFile && it.length() > 0 }
+            ?.sortedByDescending { it.lastModified() } ?: emptyList()
+        if (files.isNotEmpty()) {
+            lastDownloadedFile = files.first()
+            btnShareMusicApi.isEnabled = true
+        } else {
+            lastDownloadedFile = null
+            btnShareMusicApi.isEnabled = false
+        }
+    }
+
+    private fun shareLastDownloadedSong() {
+        val file = lastDownloadedFile
+        if (file == null || !file.exists()) {
+            Toast.makeText(this, getString(R.string.musicapi_no_downloads), Toast.LENGTH_SHORT).show()
+            return
+        }
+        try {
+            val authority = "${packageName}.fileprovider"
+            val uri = FileProvider.getUriForFile(this, authority, file)
+            val mime = when {
+                file.name.endsWith(".m4a", ignoreCase = true) -> "audio/mp4"
+                else -> "audio/mpeg"
+            }
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = mime
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(intent, getString(R.string.musicapi_share))
+            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            startActivity(chooser)
+        } catch (e: android.content.ActivityNotFoundException) {
+            Toast.makeText(this, "No app to share with", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            android.util.Log.e("SongMaker", "Share failed", e)
+            Toast.makeText(this, "Share failed: " + e.message, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -538,24 +721,49 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun playLocalFile(file: File) {
+        lastDownloadedFile = file
+        btnShareMusicApi.isEnabled = true
         stopMusicApiPlayback()
+        currentMusicApiSource = "file:${file.absolutePath}"
+        musicApiPausedPosition = 0
+        tvMusicApiSongTitle.text = file.nameWithoutExtension
+        tvMusicApiSongTitle.visibility = android.view.View.VISIBLE
         try {
             musicApiMediaPlayer = android.media.MediaPlayer().apply {
                 setDataSource(file.absolutePath)
                 prepareAsync()
-                setOnPreparedListener { start() }
+                setOnPreparedListener {
+                    seekBarMusicApi.max = 1000
+                    if (duration > 0) tvMusicApiTimeTotal.text = formatMs(duration)
+                    start()
+                    startMusicApiProgressUpdates()
+                }
                 setOnCompletionListener {
+                    stopMusicApiProgressUpdates()
+                    currentMusicApiSource = null
+                    musicApiPausedPosition = 0
                     musicApiMediaPlayer?.release()
                     musicApiMediaPlayer = null
+                    seekBarMusicApi.progress = 0
+                    tvMusicApiTimeCurrent.text = "0:00"
+                    tvMusicApiSongTitle.text = ""
+                    tvMusicApiSongTitle.visibility = android.view.View.GONE
                 }
                 setOnErrorListener { _, _, _ ->
+                    stopMusicApiProgressUpdates()
+                    currentMusicApiSource = null
                     musicApiMediaPlayer = null
+                    tvMusicApiSongTitle.text = ""
+                    tvMusicApiSongTitle.visibility = android.view.View.GONE
                     true.also { release() }
                 }
             }
             Toast.makeText(this, getString(R.string.playing), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
+            currentMusicApiSource = null
             musicApiMediaPlayer = null
+            tvMusicApiSongTitle.text = ""
+            tvMusicApiSongTitle.visibility = android.view.View.GONE
             Toast.makeText(this, "Playback failed: " + e.message, Toast.LENGTH_SHORT).show()
         }
     }
@@ -1053,6 +1261,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopMusicApiProgressUpdates()
         musicApiMediaPlayer?.release()
         musicApiMediaPlayer = null
         executor.shutdown()

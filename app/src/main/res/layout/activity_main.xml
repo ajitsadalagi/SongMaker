@@ -210,50 +210,100 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
+            android:orientation="vertical"
             android:layout_marginBottom="8dp">
-            <ImageButton
-                android:id="@+id/btnPlayMusicApi"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_icon_button"
-                android:src="@drawable/ic_play_secondary"
-                android:contentDescription="@string/musicapi_play"
-                android:scaleType="centerInside"
-                android:padding="12dp"
-                android:layout_marginEnd="4dp" />
-            <ImageButton
-                android:id="@+id/btnStopMusicApi"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_icon_button"
-                android:src="@drawable/ic_pause_secondary"
-                android:contentDescription="@string/musicapi_pause"
-                android:scaleType="centerInside"
-                android:padding="12dp"
-                android:layout_marginHorizontal="4dp" />
-            <ImageButton
-                android:id="@+id/btnDownloadMusicApi"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_icon_button"
-                android:src="@drawable/ic_download_secondary"
-                android:contentDescription="@string/musicapi_download"
-                android:scaleType="centerInside"
-                android:padding="12dp"
-                android:layout_marginHorizontal="4dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="6dp">
+                <ImageButton
+                    android:id="@+id/btnPlayMusicApi"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_icon_button"
+                    android:src="@drawable/ic_play_secondary"
+                    android:contentDescription="@string/musicapi_play"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:layout_marginEnd="4dp" />
+                <ImageButton
+                    android:id="@+id/btnStopMusicApi"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_icon_button"
+                    android:src="@drawable/ic_pause_secondary"
+                    android:contentDescription="@string/musicapi_pause"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:layout_marginHorizontal="4dp" />
+                <ImageButton
+                    android:id="@+id/btnDownloadMusicApi"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_icon_button"
+                    android:src="@drawable/ic_download_secondary"
+                    android:contentDescription="@string/musicapi_download"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:layout_marginHorizontal="4dp" />
+                <ImageButton
+                    android:id="@+id/btnShareMusicApi"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_icon_button"
+                    android:src="@drawable/ic_share_secondary"
+                    android:contentDescription="@string/musicapi_share"
+                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:layout_marginHorizontal="4dp" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp">
+                <TextView
+                    android:id="@+id/tvMusicApiTimeCurrent"
+                    android:layout_width="40dp"
+                    android:layout_height="wrap_content"
+                    android:text="0:00"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp" />
+                <SeekBar
+                    android:id="@+id/seekBarMusicApi"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="1000" />
+                <TextView
+                    android:id="@+id/tvMusicApiTimeTotal"
+                    android:layout_width="40dp"
+                    android:layout_height="wrap_content"
+                    android:text="0:00"
+                    android:textSize="12sp"
+                    android:layout_marginStart="8dp" />
+            </LinearLayout>
+            <TextView
+                android:id="@+id/tvMusicApiSongTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="13sp"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="-1"
+                android:singleLine="true"
+                android:visibility="gone"
+                android:layout_marginBottom="6dp" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnMyDownloadsMusicApi"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:paddingHorizontal="12dp"
                 android:text="@string/musicapi_my_downloads"
-                android:textSize="13sp"
-                android:layout_marginStart="8dp" />
+                android:textSize="14sp" />
         </LinearLayout>
         <ProgressBar
             android:id="@+id/progressMusicApi"

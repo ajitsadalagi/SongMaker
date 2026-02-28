@@ -7,6 +7,20 @@ android {
     namespace 'com.songmaker.app'
     compileSdk 34
 
+    signingConfigs {
+        release {
+            def propsFile = rootProject.file('signing.properties')
+            if (propsFile.exists()) {
+                def props = new Properties()
+                props.load(new FileInputStream(propsFile))
+                storeFile file(props['storeFile'] ?: '/Users/ajit/makesong-release-key.keystore')
+                storePassword props['storePassword']
+                keyAlias props['keyAlias']
+                keyPassword props['keyPassword']
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "com.songmaker.app"
         minSdk 24
@@ -21,6 +35,10 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            def propsFile = rootProject.file('signing.properties')
+            if (propsFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     compileOptions {
@@ -57,4 +75,9 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
+
+// Suppress "source value 8 is obsolete" javac warnings
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += '-Xlint:-options'
 }
